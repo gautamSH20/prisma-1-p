@@ -11,7 +11,7 @@ const Client = new PrismaClient();
 const app = express();
 app.use(express.json());
 
-app.get("/singn", async (req, res) => {
+app.get("/sign", async (req, res) => {
   const { username, password } = req.body;
 
   const validData = z.object({
