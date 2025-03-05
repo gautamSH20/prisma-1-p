@@ -86,8 +86,115 @@ app.get("/content", userMiddleware, async (req, res) => {
   //@ts-ignore
   const id = req.userId;
 
+  if (!id) {
+    res.json({
+      message: "Something is wrong id is not avilable",
+    });
+    return;
+  }
+  try {
+    const res1 = await Client.user.findFirst({
+      where: {
+        id,
+      },
+      select: {
+        todo: true,
+      },
+    });
+    res.status(200).json({
+      message: res1,
+    });
+  } catch (e) {
+    console.log("Something is wrong");
+  }
+});
+
+app.delete("/content/delete", userMiddleware, async (req, res) => {
+  //@ts-ignore
+  const id = req.userId;
+  const todo1 = req.body.id;
+  if (!id) {
+    res.send("You are not authorised");
+    return;
+  }
+
+  try {
+    const res1 = await Client.user.findFirst({
+      where: {
+        id,
+      },
+      select: {
+        todo: {
+          where: {
+            id: todo1,
+          },
+        },
+      },
+    });
+    const res2 = await Client.todo.delete({
+      where: {
+        id: todo1,
+      },
+    });
+
+    res.status(200).json({
+      messsage: res2,
+    });
+  } catch (e) {
+    res.status(401).json({
+      //@ts-ignore
+      message: e.meta.cause,
+    });
+  }
+});
+
+app.post("/add/content", userMiddleware, async (req, res) => {
+  //@ts-ignore
+  const id = req.userId;
+
+  const { title, description } = req.body;
+  const validateData = z.object({
+    title: z.string().nonempty().min(5).trim(),
+    description: z.string().trim().nonempty().min(2),
+  });
+
+  const isParse = validateData.safeParse(req.body);
+
+  if (!isParse.success) {
+    res.status(401).json({
+      message: "data is wrong",
+    });
+    return;
+  }
+
+  try {
+    const res1 = await Client.user.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    const res2 = await Client.todo.create({
+      data: {
+        title,
+        description,
+        userId: id,
+      },
+    });
+    res.status(200).json({
+      message: res2,
+    });
+  } catch (e) {
+    res.status(401).json({
+      //@ts-ignore
+      message: e.meta.cause,
+    });
+  }
+});
+app.post("/logout", userMiddleware, async (req, res) => {
+  const res1 = delete req.headers["authorization"];
   res.json({
-    userId: id,
+    message: res1,
   });
 });
 
