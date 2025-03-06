@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { crypt, compCrypt } from "./func/ccrypt";
 import "dotenv/config";
 import jwt from "jsonwebtoken";
+import cors from "cors";
 import z from "zod";
 import { userMiddleware } from "./midlleware/userMiddle";
 
@@ -10,8 +11,9 @@ const Client = new PrismaClient();
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
-app.get("/sign", async (req, res) => {
+app.post("/sign", async (req, res) => {
   const { username, password } = req.body;
 
   const validData = z.object({
@@ -21,8 +23,23 @@ app.get("/sign", async (req, res) => {
 
   const isParse = validData.safeParse(req.body);
 
+  if (!isParse.success) {
+    console.log(isParse.error);
+  }
+
   if (isParse.success) {
     const hash = (await crypt({ password })).toString();
+    const find = await Client.user.findUnique({
+      where: {
+        username,
+      },
+    });
+    if (find) {
+      res.json({
+        message: "user already exist",
+      });
+      return;
+    }
     const res1 = await Client.user.create({
       data: {
         username,
@@ -30,10 +47,12 @@ app.get("/sign", async (req, res) => {
       },
     });
     res.send({
-      res1,
+      message: "User created",
+      user: res1,
     });
   } else {
     console.log("wrong");
+    console.log(isParse);
   }
 });
 
